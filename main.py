@@ -1,14 +1,16 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import balanced_accuracy_score
+from sklearn.metrics import balanced_accuracy_score, f1_score, roc_auc_score, precision_score, recall_score
 from sklearn.preprocessing import Normalizer
 import seaborn as sns
-from logistic_regression import MyLogisticRegression
+from src.logistic_regression import MyLogisticRegression
+import cupy as cp
 
-df = pd.read_csv('normal_data.csv')
+
+df = pd.read_csv('data/normal_data.csv')
 X = df.drop('diabetes', axis=1)
 # X = (X - X.mean(axis=0)) / (X.std(axis=0) + 1e-8)
 print(X.std(axis=0))
@@ -20,36 +22,50 @@ print(y_train.shape)
 scaler = Normalizer()
 scaled_X_train = scaler.fit_transform(X_train)
 scaled_X_test = scaler.transform(X_test)
-print(scaled_X_train.std(axis=0))
-from sklearn.model_selection import GridSearchCV
-
-
-model = MyLogisticRegression()
-losses = model.fit(scaled_X_train, y_train)
-sns.lineplot(losses)
+# print(scaled_X_train.std(axis=0))
+#
+model = MyLogisticRegression(mode='gpu')
+#
+# # Подбор гиперпараметра theshold:
+#
+#
+losses = model.fit(scaled_X_train, y_train,  learning_rate=0.2)
+if isinstance(losses, cp.ndarray):
+    losses = cp.asnumpy(losses)
+elif hasattr(losses, 'get'):
+    losses = losses.get()
+f1 = []
+roc_auc = []
+# sns.lineplot(x=range(len(losses)), y=losses)
+# plt.show()
+for threshold in np.arange(0, 1, 0.01):
+    prediction = model.predict(scaled_X_test, threshold)
+    if isinstance(prediction, cp.ndarray):
+        prediction = cp.asnumpy(prediction)
+    elif hasattr(prediction, 'get'):
+        prediction = prediction.get()
+    f1.append(f1_score(y_test, prediction))
+    roc_auc.append(roc_auc_score(y_test, prediction))
+    print(f'threshold: {threshold}')
+    print(f'BAE score: {balanced_accuracy_score(y_test, prediction)}')
+    print(f'F1 score: {f1_score(y_test, prediction)}')
+    print(f'ROC AUC score: {roc_auc_score(y_test, prediction)}')
+    print(f'precision score: {precision_score(y_test, prediction)}')
+    print(f'Recall score: {recall_score(y_test, prediction)}')
+sns.lineplot(x=range(len(f1)), y=f1)
 plt.show()
-baes = []
-# Подбор гиперпараметра theshold:
-lrs = []
-l1s = []
-l2s = []
-for lr in [0.0001, 0.001, 0.01, 0.1, 1]:
-    for l1 in [0.0001, 0.001, 0.01, 0.1, 1]:
-        for l2 in [0.0001, 0.001, 0.01, 0.1, 1]:
-            losses = model.fit(scaled_X_train, y_train, l1=l1, l2=l2, learning_rate=lr)
-            for thershold in np.arange(0, 1, 0.01):
-                prediction = model.predict(scaled_X_test, thershold)
-                bae = balanced_accuracy_score(y_test, prediction)
-                baes.append(bae)
-                print(bae, l1, l2, lr, thershold)
-print(max(baes), baes.index(max(baes)))
+sns.lineplot(x=range(len(roc_auc)), y=roc_auc)
+plt.show()
+print(f'Max f1 score: {max(f1)} with threshold: {np.argmax(f1)}')
+print(f'Max ROC AUC score: {max(roc_auc)} with threshold: {np.argmax(roc_auc)}')
+
 # Best bas 0.6948454068029521 with l1=0.0001 l2= 0.001 lr=1 thershold=0.69
-
+    # skmodel = LogisticRegression(solver='newton-cholesky', penalty='l2')
+    # skmodel.fit(X_train, y_train)
+    # prediction = skmodel.predict(X_test)
+    # print(f'BAE score: {balanced_accuracy_score(y_test, prediction)}')
+    # print(f'F1 score: {f1_score(y_test, prediction)}')
+    # print(f'ROC AUC score: {roc_auc_score(y_test, prediction)}')
+    # print(f'precision score: {precision_score(y_test, prediction)}')
+    # print(f'Recall score: {recall_score(y_test, prediction)}')
 # # model.weight_to_csv()
-
-sns.lineplot(baes)
-plt.show()
-# skmodel = LogisticRegression()
-# skmodel.fit(X_train, y_train)
-# y_pred = skmodel.predict(X_test)
-# print(balanced_accuracy_score(y_test, y_pred))
