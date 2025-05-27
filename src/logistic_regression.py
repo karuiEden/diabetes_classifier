@@ -5,15 +5,6 @@ import cupy as cp
 from sklearn.metrics import balanced_accuracy_score
 
 
-def batches(X, y, batch_size):
-    n_samples = X.shape[0]
-    indices = np.random.permutation(n_samples)
-    for start in range(0, n_samples, batch_size):
-        end = min(start + batch_size, n_samples)
-        batch_idx = indices[start:end]
-        yield X[batch_idx], y[batch_idx]
-
-
 class MyLogisticRegression:
     def __init__(self, mode='cpu', tol=1e-5):
         self.w = None
@@ -75,13 +66,17 @@ class MyLogisticRegression:
         return losses
 
     def predict(self, X, threshold=0.51):
-        X = self.mv.asarray(X)
-        n, k = X.shape
-        X_ = self.mv.concatenate((self.mv.ones((n, 1)), X), axis=1)
-        pred = self.sigmoid(self.logit(X_))
+        pred = self.predict_prob(X)
         print(pred)
         print(pred > threshold)
         return (pred > threshold).astype(int)
+
+    def predict_prob(self, X):
+        X = self.mv.asarray(X)
+        n, k = X.shape
+        X_ = self.mv.concatenate((self.mv.ones((n,1)),X), axis=1)
+        pred = self.sigmoid(self.logit(X_))
+        return pred
 
     def loss(self, X, y):
         n = X.shape[0]

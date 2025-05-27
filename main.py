@@ -10,7 +10,7 @@ from src.logistic_regression import MyLogisticRegression
 import cupy as cp
 
 
-df = pd.read_csv('data/normal_data.csv')
+df = pd.read_csv('data/normal_loc_data.csv')
 X = df.drop('diabetes', axis=1)
 # X = (X - X.mean(axis=0)) / (X.std(axis=0) + 1e-8)
 print(X.std(axis=0))
@@ -24,7 +24,7 @@ scaled_X_train = scaler.fit_transform(X_train)
 scaled_X_test = scaler.transform(X_test)
 # print(scaled_X_train.std(axis=0))
 #
-model = MyLogisticRegression(mode='gpu')
+model = MyLogisticRegression(mode='cpu')
 #
 # # Подбор гиперпараметра theshold:
 #
@@ -35,30 +35,36 @@ if isinstance(losses, cp.ndarray):
 elif hasattr(losses, 'get'):
     losses = losses.get()
 f1 = []
-roc_auc = []
+recall = []
 # sns.lineplot(x=range(len(losses)), y=losses)
 # plt.show()
 for threshold in np.arange(0, 1, 0.01):
     prediction = model.predict(scaled_X_test, threshold)
+    pred_prob = model.predict_prob(scaled_X_test)
     if isinstance(prediction, cp.ndarray):
         prediction = cp.asnumpy(prediction)
     elif hasattr(prediction, 'get'):
         prediction = prediction.get()
     f1.append(f1_score(y_test, prediction))
-    roc_auc.append(roc_auc_score(y_test, prediction))
+    recall.append(recall_score(y_test, prediction))
     print(f'threshold: {threshold}')
     print(f'BAE score: {balanced_accuracy_score(y_test, prediction)}')
     print(f'F1 score: {f1_score(y_test, prediction)}')
-    print(f'ROC AUC score: {roc_auc_score(y_test, prediction)}')
+    print(f'ROC AUC score: {roc_auc_score(y_test, pred_prob)}')
     print(f'precision score: {precision_score(y_test, prediction)}')
     print(f'Recall score: {recall_score(y_test, prediction)}')
 sns.lineplot(x=range(len(f1)), y=f1)
 plt.show()
-sns.lineplot(x=range(len(roc_auc)), y=roc_auc)
+sns.lineplot(x=range(len(recall)), y=recall)
 plt.show()
 print(f'Max f1 score: {max(f1)} with threshold: {np.argmax(f1)}')
-print(f'Max ROC AUC score: {max(roc_auc)} with threshold: {np.argmax(roc_auc)}')
+print(f'Max Recall score: {max(recall)} with thr: {np.argmax(recall)}')
+# print(f'Max ROC AUC score: {max(roc_auc)} with threshold: {np.argmax(roc_auc)}')
+y_pred_proba = model.predict_prob(scaled_X_test)
 
+# Вычисление ROC AUC
+recall = roc_auc_score(y_test, y_pred_proba)
+print(f'ROC AUC: {recall}')
 # Best bas 0.6948454068029521 with l1=0.0001 l2= 0.001 lr=1 thershold=0.69
     # skmodel = LogisticRegression(solver='newton-cholesky', penalty='l2')
     # skmodel.fit(X_train, y_train)
