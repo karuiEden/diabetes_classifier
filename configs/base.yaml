@@ -1,4 +1,27 @@
+experiment:
+  name: "optimizer_benchmarks"
+  seed: 42
+  output_dir: "artifacts"
 
+data:
+  path: "data/diabetes_dataset_with_notes.csv"
+  target_col: "diabetes"
+  test_size: 0.15
+  val_size: 0.15
+  random_state: 42
 
 runtime:
   mode: "cpu"
+
+model:
+  learning_rate: 0.1
+  l2: 0.0
+  tol: 1e-5
+  max_iter: 200
+  threshold_grid: [ 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9 ]
+  metric_for_threshold: "f1"
+
+logging:
+  level: "INFO"
+  file: "logs/train.log"
+
