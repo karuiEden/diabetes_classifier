@@ -1,7 +1,6 @@
-import random
-
+import importlib.util
 import numpy as np
-import cupy as cp
+
 
 class MyLogisticRegression:
     def __init__(self, mode='cpu', tol=1e-5, l2=0, learning_rate=0.1):
@@ -9,9 +8,9 @@ class MyLogisticRegression:
         self.l2 = l2
         self.tol = tol
         self.lr = learning_rate
-        if mode == 'gpu':
-            self.mv = cp
-        else :
+        if mode == 'gpu' and importlib.util.find_spec('cupy') is not None:
+            self.mv = importlib.import_module('cupy')
+        else:
             self.mv = np
 
     def logit(self, X):
