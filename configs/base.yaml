@@ -1,7 +1,7 @@
 experiment:
   name: "optimizer_benchmarks"
   seed: 42
-  output_dir: "artifacts"
+  output_dir: "artifacts/"
 
 data:
   path: "data/diabetes_dataset_with_notes.csv"

@@ -3,53 +3,15 @@ import logging
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import yaml
 from sklearn.metrics import f1_score, recall_score, precision_score, balanced_accuracy_score, average_precision_score
-from sklearn.model_selection import train_test_split
 
+from io import save_splits
+from logs import setup_logs
 from src.Preprocessor import Preprocessor
+from src.io import save_weights, save_threshold, save_preproc, load_data, load_config
 from src.logistic_regression import MyLogisticRegression
 
-
-def load_config(path_str: str = "configs/base.yaml") -> dict:
-    path = Path(path_str)
-    if not path.exists():
-        raise FileNotFoundError(f'Config not found: {path_str}')
-
-    with path.open('r', encoding='utf-8') as f:
-        cfg = yaml.safe_load(f)
-
-    if not isinstance(cfg, dict):
-        raise ValueError("Error during create config")
-
-    return cfg
-
-def setup_logs(cfg: dict):
-    log_level = cfg['logging'].get("level", "INFO").upper()
-    log_path = cfg['logging']['file']
-    path = Path(log_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    logging.basicConfig(
-        level=getattr(logging, log_level, logging.INFO),
-        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-        handlers=[
-            logging.StreamHandler(),
-            logging.FileHandler(log_path, encoding='utf-8')
-        ],
-        force=True
-    )
-
-def load_data(cfg: dict):
-    data_path = cfg['data']['path']
-    target = cfg['data']['target_col']
-    df = pd.read_csv(data_path)
-    X = df.drop(columns=[target])
-    y = df[target]
-    X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=cfg["data"]['test_size'], random_state=cfg["data"]['random_state'], stratify=y)
-    rel_val_size = cfg["data"]['val_size'] / (1 - cfg["data"]['test_size'])
-    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=rel_val_size, random_state=cfg["data"]['random_state'], stratify=y_train)
-    return X_train, X_val, X_test, y_train, y_val, y_test
 
 def get_best_threshold(y_proba, y_true, grid: list, by: str = 'f1'):
     metric_map = {
@@ -117,7 +79,13 @@ def main():
     logger.info(
         f"Test metrics | pr_auc={pr_auc:.4f} f1={f1:.4f} recall={recall:.4f} precision={precision:.4f}"
     )
-
+    logger.info("Run completed")
+    output_dir = cfg["experiment"]["output_dir"]
+    save_weights(model, output_dir)
+    save_threshold(best_threshold, output_dir)
+    save_preproc(preproc, output_dir)
+    save_splits(X_train, X_val, X_test, output_dir)
+    logger.info(f"Data saved to {output_dir}")
 
 if __name__ == '__main__':
     main()
