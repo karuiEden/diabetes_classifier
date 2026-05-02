@@ -50,7 +50,7 @@ def load_preproc(path: str):
 
 
 def load_data(cfg: dict):
-    data_path = str(cfg['data']['path'])
+    data_path = cfg['data']['path']
     target = cfg['data']['target_col']
     df = pd.read_csv(data_path)
     X = df.drop(columns=[target])
@@ -85,3 +85,10 @@ def save_splits(X_train: pd.DataFrame, X_val: pd.DataFrame, X_test: pd.DataFrame
 def load_splits(path: str) -> dict:
     with open(path, 'r') as f:
         return json.load(f)
+
+
+def save_metrics(metrics: dict, path: str):
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with p.open('w') as f:
+        json.dump(metrics, f, indent=2)

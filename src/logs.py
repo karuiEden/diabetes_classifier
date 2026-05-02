@@ -2,9 +2,9 @@ import logging
 from pathlib import Path
 
 
-def setup_logs(cfg: dict):
+def setup_logs(cfg: dict, mode: str = "train"):
     log_level = cfg['logging'].get("level", "INFO").upper()
-    log_path = cfg['logging']['file']
+    log_path = cfg['logging']['train_file'] if mode == "train" else cfg['logging']['eval_file']
     path = Path(log_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(

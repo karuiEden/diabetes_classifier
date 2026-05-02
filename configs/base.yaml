@@ -13,7 +13,7 @@ data:
 runtime:
   mode: "cpu"
 
-model:
+models:
   learning_rate: 0.1
   l2: 0.0
   tol: 1e-5
@@ -23,5 +23,6 @@ model:
 
 logging:
   level: "INFO"
-  file: "logs/train.log"
+  train_file: "logs/train.log"
+  eval_file: "logs/test.log"
 

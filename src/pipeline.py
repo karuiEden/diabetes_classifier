@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.base import ClassifierMixin, BaseEstimator
 from sklearn.metrics import f1_score, roc_auc_score, recall_score, precision_score
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from src.logistic_regression import MyLogisticRegression
+from models.logistic_regression import MyLogisticRegression
 
 
 class DiabetesClassifier(ClassifierMixin, BaseEstimator):
