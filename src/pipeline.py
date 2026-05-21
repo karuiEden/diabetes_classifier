@@ -3,8 +3,7 @@ import pandas as pd
 from sklearn.base import ClassifierMixin, BaseEstimator
 from sklearn.metrics import f1_score, roc_auc_score, recall_score, precision_score
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
-import cupy as cp
-from src.logistic_regression import MyLogisticRegression
+from models.logistic_regression import MyLogisticRegression
 
 
 class DiabetesClassifier(ClassifierMixin, BaseEstimator):
@@ -17,7 +16,7 @@ class DiabetesClassifier(ClassifierMixin, BaseEstimator):
         self.learning_rate = learning_rate
         self.tol = tol
         self.mode = mode
-        self.model = MyLogisticRegression(mode='gpu', l2=l2, learning_rate=learning_rate, tol=tol)
+        self.model = MyLogisticRegression(mode=mode, l2=l2, learning_rate=learning_rate, tol=tol)
 
     def clean_data(self, x):
         cat_col = ['clinical_notes', 'year']
@@ -74,9 +73,7 @@ class DiabetesClassifier(ClassifierMixin, BaseEstimator):
 
     def score(self, x, y_test, sample_weight=None):
         prediction = self.predict(x)
-        if isinstance(prediction, cp.ndarray):
-            prediction = cp.asnumpy(prediction)
-        elif hasattr(prediction, 'get'):
+        if hasattr(prediction, 'get'):
             prediction = prediction.get()
         y = y_test.drop(self.idx)
         y = y.to_numpy()
@@ -84,9 +81,7 @@ class DiabetesClassifier(ClassifierMixin, BaseEstimator):
 
     def f1(self, x, y_test):
         prediction = self.predict(x)
-        if isinstance(prediction, cp.ndarray):
-            prediction = cp.asnumpy(prediction)
-        elif hasattr(prediction, 'get'):
+        if hasattr(prediction, 'get'):
             prediction = prediction.get()
         y = y_test.drop(self.idx)
         y = y.to_numpy()
@@ -94,9 +89,7 @@ class DiabetesClassifier(ClassifierMixin, BaseEstimator):
 
     def roc_auc(self, x, y_test):
         prediction = self.predict_prob(x)
-        if isinstance(prediction, cp.ndarray):
-            prediction = cp.asnumpy(prediction)
-        elif hasattr(prediction, 'get'):
+        if hasattr(prediction, 'get'):
             prediction = prediction.get()
         y = y_test.drop(self.idx)
         y = y.to_numpy()
@@ -104,9 +97,7 @@ class DiabetesClassifier(ClassifierMixin, BaseEstimator):
 
     def recall(self, x, y_test):
         prediction = self.predict(x)
-        if isinstance(prediction, cp.ndarray):
-            prediction = cp.asnumpy(prediction)
-        elif hasattr(prediction, 'get'):
+        if hasattr(prediction, 'get'):
             prediction = prediction.get()
         y = y_test.drop(self.idx)
         y = y.to_numpy()
@@ -114,9 +105,7 @@ class DiabetesClassifier(ClassifierMixin, BaseEstimator):
 
     def precision(self, x, y_test):
         prediction = self.predict(x)
-        if isinstance(prediction, cp.ndarray):
-            prediction = cp.asnumpy(prediction)
-        elif hasattr(prediction, 'get'):
+        if hasattr(prediction, 'get'):
             prediction = prediction.get()
         y = y_test.drop(self.idx)
         y = y.to_numpy()
@@ -124,9 +113,7 @@ class DiabetesClassifier(ClassifierMixin, BaseEstimator):
 
     def save_weight(self):
         weights = self.model.get_weights()
-        if isinstance(weights, cp.ndarray):
-            weights = cp.asnumpy(weights)
-        elif hasattr(weights, 'get'):
+        if hasattr(weights, 'get'):
             weights = weights.get()
         np.save('weights.npy', weights)
 

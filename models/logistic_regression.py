@@ -1,17 +1,21 @@
-import random
+import importlib.util
+import json
+from pathlib import Path
 
 import numpy as np
-import cupy as cp
+
 
 class MyLogisticRegression:
-    def __init__(self, mode='cpu', tol=1e-5, l2=0, learning_rate=0.1):
+    def __init__(self, mode='cpu', tol=1e-5, l2=0, learning_rate=0.1, max_iter=1000,epsilon=1e-8):
         self.w = None
         self.l2 = l2
         self.tol = tol
         self.lr = learning_rate
-        if mode == 'gpu':
-            self.mv = cp
-        else :
+        self.epsilon = epsilon
+        self.max_iter = max_iter
+        if mode == 'gpu' and importlib.util.find_spec('cupy') is not None:
+            self.mv = importlib.import_module('cupy')
+        else:
             self.mv = np
 
     def logit(self, X):
@@ -53,7 +57,8 @@ class MyLogisticRegression:
         losses = []
         err = self.tol + 1
         losses.append(self.loss(X, y))
-        while err > self.tol:
+        i = 0
+        while err > self.tol and i < self.max_iter:
             grad = self.get_grad(X, y)
             hess = self.get_hess(X)
             epsilon = 1e-8
@@ -65,6 +70,7 @@ class MyLogisticRegression:
             self.w += self.lr * update
             losses.append(self.loss(X, y))
             err = abs(losses[-1] - losses[-2])
+            i += 1
         return losses
 
     def predict(self, X, threshold=0.44):
@@ -84,3 +90,26 @@ class MyLogisticRegression:
         pred = self.mv.clip(self.sigmoid(self.logit(X_)), 1e-10, 1 - 1e-10)
         reg = (self.l2 / (2 * n)) * self.mv.sum(self.w[1:] ** 2)
         return -self.mv.mean(y * self.mv.log(pred) + (1 - y) * self.mv.log(1 - pred)) + reg
+
+    def set_weights(self, w):
+        self.w = w
+
+    @staticmethod
+    def from_file(hyper_params_path: str, weights_path: str):
+        hyper_params = Path(hyper_params_path)
+        if not hyper_params.exists():
+            raise FileNotFoundError(f"Hyper parameters file not found at {hyper_params_path}")
+        with open(hyper_params_path, 'r') as f:
+            hyper_params = json.load(f)
+        weights = np.load(weights_path)
+
+        model = MyLogisticRegression(**hyper_params)
+        model.set_weights(np.load(weights))
+        return model
+
+    def to_file(self, hyper_params_path: str, weights_path: str):
+        hyper_p = Path(hyper_params_path)
+        hyper_p.parent.mkdir(parents=True, exist_ok=True)
+        with open(hyper_params_path, 'w') as f:
+            json.dump(self.__dict__, f)
+        np.save(weights_path, self.w)
